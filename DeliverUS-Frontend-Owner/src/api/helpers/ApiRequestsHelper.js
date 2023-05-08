@@ -72,4 +72,22 @@ const destroy = (route) => {
   })
 }
 
-export { get, post, put, destroy }
+const patch = (route, data = null) => {
+  const { config, preparedData } = prepareData(data)
+
+  return new Promise(function (resolve, reject) {
+    axios.patch(route, preparedData, config)
+      .then(response => {
+        resolve(response.data)
+      })
+      .catch(error => {
+        try {
+          handleError(error)
+        } catch (error) {
+          reject(error)
+        }
+      })
+  })
+}
+
+export { get, post, put, destroy, patch }
