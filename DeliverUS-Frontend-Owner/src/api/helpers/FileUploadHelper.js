@@ -67,8 +67,10 @@ function getMultiPartHeader () {
 }
 
 function prepareData (preparedData) {
-  let config
-  const files = getFilesFromData(preparedData)
+  let config, files
+  if (preparedData) {
+    files = getFilesFromData(preparedData)
+  }
   preparedData = getDataWithoutBodyFiles(preparedData)
   if (files && files.length) {
     preparedData = constructFormData(files, preparedData)

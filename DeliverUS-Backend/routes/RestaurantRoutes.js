@@ -75,4 +75,13 @@ module.exports = (options) => {
       middlewares.checkEntityExists(Restaurant, 'restaurantId'),
       middlewares.checkRestaurantOwnership,
       OrderController.analytics)
+
+  // SOLUTION
+  app.route('/restaurants/:restaurantId/promote')
+    .patch(
+      middlewares.isLoggedIn,
+      middlewares.hasRole('owner'),
+      middlewares.checkEntityExists(Restaurant, 'restaurantId'),
+      middlewares.checkRestaurantOwnership,
+      RestaurantController.promote)
 }

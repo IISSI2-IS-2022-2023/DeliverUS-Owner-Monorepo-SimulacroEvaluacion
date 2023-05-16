@@ -5,17 +5,18 @@ const Product = models.Product
 const RestaurantCategory = models.RestaurantCategory
 const ProductCategory = models.ProductCategory
 
+// SOLUTION
 exports.index = async function (req, res) {
   try {
     const restaurants = await Restaurant.findAll(
       {
-        attributes: ['id', 'name', 'description', 'address', 'postalCode', 'url', 'shippingCosts', 'averageServiceMinutes', 'email', 'phone', 'logo', 'heroImage', 'status', 'restaurantCategoryId'],
+        attributes: ['id', 'name', 'description', 'address', 'postalCode', 'url', 'shippingCosts', 'averageServiceMinutes', 'email', 'phone', 'logo', 'heroImage', 'promoted', 'status', 'restaurantCategoryId'],
         include:
-      {
-        model: RestaurantCategory,
-        as: 'restaurantCategory'
-      },
-        order: [[{ model: RestaurantCategory, as: 'restaurantCategory' }, 'name', 'ASC']]
+        {
+          model: RestaurantCategory,
+          as: 'restaurantCategory'
+        },
+        order: [['promoted', 'DESC'], [{ model: RestaurantCategory, as: 'restaurantCategory' }, 'name', 'ASC']]
       }
     )
     res.json(restaurants)
@@ -24,12 +25,14 @@ exports.index = async function (req, res) {
   }
 }
 
+// SOLUTION
 exports.indexOwner = async function (req, res) {
   try {
     const restaurants = await Restaurant.findAll(
       {
-        attributes: ['id', 'name', 'description', 'address', 'postalCode', 'url', 'shippingCosts', 'averageServiceMinutes', 'email', 'phone', 'logo', 'heroImage', 'status', 'restaurantCategoryId'],
-        where: { userId: req.user.id }
+        attributes: ['id', 'name', 'description', 'address', 'postalCode', 'url', 'shippingCosts', 'averageServiceMinutes', 'email', 'phone', 'logo', 'heroImage', 'promoted', 'status', 'restaurantCategoryId'],
+        where: { userId: req.user.id },
+        order: [['promoted', 'DESC']]
       })
     res.json(restaurants)
   } catch (err) {
@@ -51,7 +54,7 @@ exports.create = async function (req, res) {
     const restaurant = await newRestaurant.save()
     res.json(restaurant)
   } catch (err) {
-      res.status(500).send(err)
+    res.status(500).send(err)
   }
 }
 
@@ -69,7 +72,7 @@ exports.show = async function (req, res) {
         model: RestaurantCategory,
         as: 'restaurantCategory'
       }],
-      order: [[{model:Product, as: 'products'}, 'order', 'ASC']],
+      order: [[{ model: Product, as: 'products' }, 'order', 'ASC']]
     }
     )
     res.json(restaurant)
@@ -105,6 +108,32 @@ exports.destroy = async function (req, res) {
     }
     res.json(message)
   } catch (err) {
+    res.status(500).send(err)
+  }
+}
+
+// SOLUTION
+exports.promote = async function (req, res) {
+  const t = await models.sequelize.transaction()
+  try {
+    const existingPromotedRestaurant = await Restaurant.findOne({ where: { userId: req.user.id, promoted: true } })
+    if (existingPromotedRestaurant) {
+      await Restaurant.update(
+        { promoted: false },
+        { where: { id: existingPromotedRestaurant.id } },
+        { transaction: t }
+      )
+    }
+    await Restaurant.update(
+      { promoted: true },
+      { where: { id: req.params.restaurantId } },
+      { transaction: t }
+    )
+    await t.commit()
+    const updatedRestaurant = await Restaurant.findByPk(req.params.restaurantId)
+    res.json(updatedRestaurant)
+  } catch (err) {
+    await t.rollback()
     res.status(500).send(err)
   }
 }
